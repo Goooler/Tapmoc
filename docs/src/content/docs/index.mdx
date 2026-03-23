@@ -1,0 +1,91 @@
+---
+title: Quickstart
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+
+Tapmoc helps you configure your Java/Kotlin compatibility flags:
+
+```kotlin
+tapmoc {
+  java(17) // build for Java 17, including source, target and api compatibility
+  kotlin("2.1.0") // build for kotlin 2.1.0, including language and api version
+}
+```
+
+## Rationale
+
+Configuring Java/Kotlin compatibility flags is a mundane task that comes with surprising amounts of questions:
+
+* What is the difference between `sourceCompatibility` and `targetCompatibility`?
+* Should I use `release` instead?
+* What does `release` even mean on Android?
+* Why do I need to configure Java compatibility if I only do Kotlin?
+* How do I configure `release` with Kotlin?
+* Should I use `tasks.withType<KotlinCompile>` or `compilerOptions {}` or something else?
+* Is it "1.8" or "8" or `JavaVersion.VERSION_1_8`?
+* Is it `org.jetbrains.kotlin.gradle.dsl.KotlinVersion` or `kotlin.KotlinVersion`?
+* Is this working with KMP?
+* And more (watch the [KotlinConf 2025 talk](https://www.youtube.com/watch?v=2Vp2QeBZkfo))...
+
+Tapmoc handles all of that with just two simple functions!
+
+<Aside>
+The KMP ecosystem is a lot less mature than the JVM ecosystem and [non-JVM targets do not support apiVersion/languageVersion](https://youtrack.jetbrains.com/issue/KT-66755/). Compatibility flags only work for JVM targets.
+</Aside>
+
+## Usage
+
+```kotlin
+plugins {
+  // Add your Java/Kotlin/Android plugins here
+  id("java")
+  // or
+  id("org.jetbrains.kotlin.jvm")
+  // or
+  id("org.jetbrains.kotlin.multiplatform")
+  id("com.android.kotlin.multiplatform.library")
+  // or
+  id("com.android.library")
+  // etc...
+  // And add the Tapmoc plugin
+  id("com.gradleup.tapmoc").version("0.4.0")
+}
+
+/*
+ * Configure your Java/Kotlin targets with a single code block.
+ */
+tapmoc {
+  // Java takes an int for simplicity
+  java(17)
+  // Kotlin takes a string so you have more control of the patch release.
+  // languageVersion/apiVersion are configured with the minor version only.
+  kotlin("2.1.0")
+
+  // Optional: fail the build if any api dependency exposes incompatible Kotlin
+  // metadata, Kotlin stdlib or Java bytecode version.
+  checkDependencies()
+}
+```
+
+## Checking transitive dependencies
+
+Enforcing compiler flags works for your own code but doesn't check your dependencies. They may use incompatible APIs that will crash at runtime and/or produce incompatible metadata that will crash at build time.
+
+You can have tapmoc fail in such cases with `checkDependencies`:
+
+```kotlin
+tapmoc {
+  // Fail the build if any api dependency exposes incompatible Kotlin metadata,
+  // Kotlin stdlib or Java bytecode version.
+  checkDependencies()
+}
+```
+
+## Requirements
+
+* Gradle 8.3+
+* For Kotlin: Kotlin Gradle Plugin 1.9.0+
+* For Android: Android Gradle Plugin 8.2.0+
+

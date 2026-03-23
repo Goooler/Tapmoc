@@ -1,6 +1,16 @@
+<header>
+  <div align="center">
+    <img src="https://raw.githubusercontent.com/GradleUp/tapmoc/refs/heads/main/docs/public/tapmoc.svg" height="100" alt="Tapmoc Logo">
+  </div>
+    <div align="center">
+
 [![Maven Central](https://img.shields.io/maven-central/v/com.gradleup.tapmoc/tapmoc-gradle-plugin?style=flat-square)](https://central.sonatype.com/namespace/com.gradleup.tapmoc)
 [![OSS Snapshots](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Fcentral.sonatype.com%2Frepository%2Fmaven-snapshots%2Fcom%2Fgradleup%2Ftapmoc%2Ftapmoc-gradle-plugin%2Fmaven-metadata.xml&label=snapshots
 )]([https://oss.sonatype.org/content/repositories/snapshots/com/gradleup/tapmoc/](https://central.sonatype.com/repository/maven-snapshots/com/gradleup/tapmoc/tapmoc-gradle-plugin/maven-metadata.xml))
+  </div>
+</header>
+
+---
 
 
 # Tapmoc
@@ -14,93 +24,10 @@ tapmoc {
 }
 ```
 
-### Rationale
+## 📚 Documentation
 
-Configuring Java/Kotlin compatibility flags is a mundane task that comes with surprising amounts of questions:
+See the project website for documentation:<br/>
+[https://gradleup.github.io/tapmoc/](https://gradleup.github.io/tapmoc/)
 
-* What is the difference between `sourceCompatibility` and `targetCompatibility`?
-* Should I use `release` instead?
-* What does `release` even mean on Android?
-* Why do I need to configure Java compatibility if I only do Kotlin?
-* How do I configure `release` with Kotlin?
-* Should I use `tasks.withType<KotlinCompile>` or `compilerOptions {}` or something else?
-* Is it "1.8" or "8" or `JavaVersion.VERSION_1_8`?
-* Is it `org.jetbrains.kotlin.gradle.dsl.KotlinVersion` or `kotlin.KotlinVersion`?
-* Is this working with KMP?
-* And more (watch the [KotlinConf 2025 talk](https://www.youtube.com/watch?v=2Vp2QeBZkfo))...
 
-Tapmoc handles all of that with just two simple functions!
-
-> [!NOTE]
-> The KMP ecosystem is a lot less mature than the JVM ecosystem and [non-JVM targets do not support apiVersion/languageVersion](https://youtrack.jetbrains.com/issue/KT-66755/). Compatibility flags only work for JVM targets. 
- 
-### Usage
-
-```kotlin
-plugins {
-  // Add your Java/Kotlin/Android plugins here
-  id("java")
-  // or
-  id("org.jetbrains.kotlin.jvm")
-  // or
-  id("org.jetbrains.kotlin.multiplatform")
-  id("com.android.kotlin.multiplatform.library")
-  // or
-  id("com.android.library")
-  // etc...
-  // And add the Tapmoc plugin
-  id("com.gradleup.tapmoc").version("0.4.0")
-}
-
-/*
- * Configure all your Java/Kotlin targets with a single code block.
- * This code block works regardless of if you're using Kotlin/Android/KMP/etc...
- * You can copy/paste it
- */
-tapmoc {
-  // Java takes an int for simplicity
-  java(17)
-  // Kotlin takes a string so you have more control of the patch release of the stdlib.
-  // languageVersion/apiVersion are configured with the minor version only.
-  kotlin("2.1.0")
-
-  // Optional: fail the build if any api dependency exposes incompatible Kotlin metadata, Kotlin stdlib or Java bytecode version.
-  checkDependencies()
-}
-```
-
-If you have convention plugins, you can also use Tapmoc without all the plugin ceremony:
-
-```kotlin
-import tapmoc.configureJavaCompatibility
-import tapmoc.configureKotlinCompatibility
-
-class ConventionPlugin: Plugin<Project> {
-  override fun apply(target: Project) {
-    target.configureJavaCompatibility(17)
-    target.configureKotlinCompatibility("2.1.0")
-  }
-}
-```
-
-That's it, you can now keep on with your life.
-
-### Checking transitive dependencies
-
-Enforcing compiler flags works for your own code but doesn't check your dependencies. They may use incompatible APIs that will crash at runtime and/or produce incompatible metadata that will crash at build time.
-
-You can have tapmoc fail in such cases with `checkDependencies`:
-
-```kotlin
-tapmoc {
-  // Fail the build if any api dependency exposes incompatible Kotlin metadata, Kotlin stdlib or Java bytecode version.
-  checkDependencies()
-}
-```
-
-### Requirements:
-
-* Gradle 8.3+
-* For Kotlin: Kotlin Gradle Plugin 1.9.0+
-* For Android: Android Gradle Plugin 8.2.0+
 

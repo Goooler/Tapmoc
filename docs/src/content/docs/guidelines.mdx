@@ -1,0 +1,106 @@
+---
+title: Guidelines for library authors
+---
+
+Tapmoc gives you tools to configure your Java/Kotlin compiler flags, but it's sometimes not easy to decide on appropriate values. There is an inevitable tradeoff between:
+
+* compatibility (better for consumers)
+* modernity (better for library authors and moving the ecosystem in general)
+
+This page gives opinionated guidance about how to choose your compatibility flags.
+
+There is no perfect answer. There are lots of moving parts. But this is what works for GradleUp projects. We hope it can work for you too.
+
+## Java version
+
+**Guidelines**
+
+1. If you are writing a project for Spring, set `tapmoc.java(17)`.
+2. If you are writing a project that integrates with the Android Gradle Plugin, set `tapmoc.java(17)`.
+3. More generally, target the same minimal version as the ecosystem you're targeting.
+4. If you need newer APIs ([virtual threads](https://openjdk.org/projects/loom/), etc.), use the Java version that supports them.
+5. Else use good old Java 8.
+
+**Discussion**
+
+If you are targeting a specific ecosystem such as Spring or the Android Gradle Plugin, they made the choice for you. This is the easy path (`1.`, `2.`, `3.`).
+
+Else, using newer APIs is a good opportunity to bump the required Java version (`4.`).
+
+In doubt, use Java 8, which is still the most widely supported Java version (`5.`). See also the [Android special case](#android-libraries) below.
+
+Note that targeting Java 8 became deprecated in Java 25. Targeting a higher version of Java might become the default soon.
+
+## Kotlin version
+
+**Guidelines**
+
+1. Use the same Kotlin Gradle Plugin (KGP) version as [androidx](https://github.com/androidx/androidx/blob/f8e08187ae83214baa25900244adae22e33aa541/gradle/libs.versions.toml#L56).
+2. Target `KGP - 3` for Kotlin. If you are using KGP `2.3.20`, set `tapmoc.kotlin("2.0.0")`.
+
+**Discussion**
+
+Using modern tooling is always preferable, but [Kotlin native and Kotlin JS do not support compatibility flags](https://youtrack.jetbrains.com/issue/KT-66755/Native-non-JVM-targets-add-support-for-languageVersion).
+
+Bumping your version of KGP forces all the Kotlin native & JS consumers to the same version of KGP.
+
+This isn't great, but there is unfortunately no silver bullet for this. Using the same version as androidx gives a unified and simple message to the community (`1.`).
+
+In the future, [Kotlin BTA](https://kotlinlang.org/docs/build-tools-api.html) will support Kotlin native & JS compilation and might provide a workaround for this.
+
+The [Kotlin tools support at least three previous version](https://kotlinlang.org/docs/kotlin-evolution-principles.html#compatibility-options). By using `KGP - 3` for your Kotlin target, you're giving your consumers ~2 years to update their own tools (`2.`).
+
+Note that the version of KGP you are using is usually different from the version of Kotlin you're targeting. Read this [blog post about multiple versions of Kotlin](https://mbonnin.net/2026-02-22-kotlin-versions/) for more details.
+
+## Android libraries
+
+Android libraries are a bit special because Android doesn't run a JVM but has its own virtual machine, [ART](https://source.android.com/docs/core/runtime).
+
+**Guidelines**
+
+1. When in doubt, target Java 8.
+2. Delay updating `compileSdk` until your lib actually needs newer APIs.
+
+**Discussion**
+
+There is no 1:1 mapping between what bytecode and APIs a Java version supports and what ART supports. [D8 and L8 convert most Java bytecode and APIs to something that ART supports](https://jakewharton.com/d8-library-desugaring/). But it's not guaranteed to always work. One recent example is Java 21 [`removeFirst()` not being desugared](https://jakewharton.com/kotlins-jdk-release-compatibility-flag/).
+
+For those reasons, and because there isn't much evidence that newer Java bytecode and APIs bring impactful improvement, we recommend targeting Java 8 for Android libraries (`1.`).
+
+In addition to Java/Kotlin compatibility flags, Android also has [`compileSdk`](https://developer.android.com/build#android_sdk_settings). `compileSdk` is the version of the Android APIs used by apps and libraries.
+
+[`compileSdk` is used both by `kotlinx` and `R8`](https://issuetracker.google.com/u/2/issues/494350641). R8 needs to know what APIs are available in order to minimize efficiently.
+
+If you bump the `compileSdk` version of your lib, [you're forcing every consumer to the same `compileSdk` version](https://www.liutikas.net/2026/02/13/Relationship-Status.html), which is not always easy.
+
+For this reason, only bump `compileSdk` in your libs if you actually need the newer APIs (`2`).
+
+## Gradle plugins
+
+Gradle is a bit special because it [forces both the version of `kotlin-stdlib` used when executing your build logic](https://github.com/gradle/gradle/issues/16345) and the version of `kotlinc` used to compile your `build.gradle.kts` files. This is outlined in the [Gradle/Kotlin compatibility matrix](https://docs.gradle.org/current/userguide/compatibility.html).
+
+**Guidelines**
+
+1. Use an old version of Kotlin in your plugin wiring.
+2. Isolate your task actions and pull dependencies in isolated classloaders.
+
+**Discussion**
+
+Tapmoc provides the `gradle()` helper:
+
+```kotlin
+tapmoc {
+  gradle("8.0.0")
+  checkDependencies()
+}
+```
+
+This sets the Java/Kotlin compiler flags for your Gradle plugin and checks that you're not using incompatible dependencies.
+
+Using `tapmoc.gradle("8.0.0")` effectively sets your Kotlin compatibility to Kotlin `1.8` which is relatively old in Kotlin time but often times acceptable for the public API and wiring of your plugin (`1.`).
+
+The ecosystem is moving fast though, and it's really hard to avoid pulling recent versions of `kotlin-stdlib` through common dependencies like `kotlinx-serialization`, `okhttp` or other.
+
+A good solution is to run the code that [requires dependencies (task actions) in a separate classloader](https://mbonnin.net/2025-08-24_isolation_101/) (`2.`).
+
+In addition to being compatible with Gradle, this also avoids dependency conflicts with other plugins.
