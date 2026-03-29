@@ -23,7 +23,6 @@ cast = "net.mbonnin.cast:cast:0.0.1"
 jsonpathkt = "com.eygraber:jsonpathkt-kotlinx:3.0.2"
 kotlinx-json = "org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0"
 asm = "org.ow2.asm:asm:9.9.1"
-tapmoc = "com.gradleup.tapmoc:tapmoc-gradle-plugin:0.0.3"
 nmcp-tasks = { module = "com.gradleup.nmcp:nmcp-tasks", version.ref = "nmcp" }
 
 [plugins]
@@ -40,5 +39,5 @@ librarian = { id = "com.gradleup.librarian", version = "0.2.2-SNAPSHOT-a938d327d
 #noinspection NewerVersionAvailable
 nmcp = { id = "com.gradleup.nmcp", version.ref = "nmcp" }
 #noinspection NewerVersionAvailable
-tapmoc = { id = "com.gradleup.tapmoc", version = "0.4.1-SNAPSHOT-24c386276142ccf309541b649b79df527c7215d5" }
+tapmoc = { id = "com.gradleup.tapmoc", version = "0.4.1-SNAPSHOT-faf78a255ccac5c09c671613b60c0d9d8173c904" }
 gratatouille = { id = "com.gradleup.gratatouille", version.ref = "gratatouille-build-time" }
