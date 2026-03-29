@@ -131,7 +131,12 @@ private class KgpImpl(private val dependencyHandler: DependencyHandler, extensio
          * useful for tapmoc itself, which has several compilations for AGP vs KGP
          */
         kotlinProjectExtension.forAllTargets { target ->
-          target.compilations.matching { it.name != "test" }.configureEach { compilation ->
+          target.compilations.matching {
+            /**
+             * TODO: refine this, KGP has a lot of custom logic to avoid adding to the api configuration for tests
+             */
+            !it.name.lowercase().contains("test")
+          }.configureEach { compilation ->
             compilation.allKotlinSourceSets.forEach { sourceSet ->
               dependencyHandler.add(sourceSet.apiConfigurationName, "org.jetbrains.kotlin:kotlin-stdlib:${version}")
             }
