@@ -1,5 +1,7 @@
 package tapmoc.internal
 
+import org.gradle.api.NamedDomainObjectContainer
+import org.gradle.api.NamedDomainObjectSet
 import org.gradle.api.Project
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.provider.ProviderFactory
@@ -13,6 +15,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinSingleTargetExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePlugin
+import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinTargetsContainer
@@ -111,7 +114,7 @@ private class KgpImpl(private val dependencyHandler: DependencyHandler, extensio
        */
       if (kotlinProjectExtension is KotlinMultiplatformExtension) {
         kotlinProjectExtension.targets.configureEach { target ->
-          target.compilations.matching { it.name != "test" }.configureEach { compilation ->
+          target.compilations.withoutTests().configureEach { compilation ->
             compilation.defaultSourceSet.dependencies {
               if (target.platformType in setOf(KotlinPlatformType.jvm, KotlinPlatformType.androidJvm, KotlinPlatformType.common)) {
                 api("org.jetbrains.kotlin:kotlin-stdlib:${version}")
@@ -131,12 +134,7 @@ private class KgpImpl(private val dependencyHandler: DependencyHandler, extensio
          * useful for tapmoc itself, which has several compilations for AGP vs KGP
          */
         kotlinProjectExtension.forAllTargets { target ->
-          target.compilations.matching {
-            /**
-             * TODO: refine this, KGP has a lot of custom logic to avoid adding to the api configuration for tests
-             */
-            !it.name.lowercase().contains("test")
-          }.configureEach { compilation ->
+          target.compilations.withoutTests().configureEach { compilation ->
             compilation.allKotlinSourceSets.forEach { sourceSet ->
               dependencyHandler.add(sourceSet.apiConfigurationName, "org.jetbrains.kotlin:kotlin-stdlib:${version}")
             }
@@ -157,6 +155,15 @@ private class KgpImpl(private val dependencyHandler: DependencyHandler, extensio
 
   override fun version(project: Project): String {
     return project.getKotlinPluginVersion()
+  }
+}
+
+private fun <T: KotlinCompilation<*>> NamedDomainObjectContainer<T>.withoutTests(): NamedDomainObjectSet<T> {
+  return matching {
+    /**
+     * TODO: refine this, KGP has a lot of custom logic to avoid adding to the api configuration for tests
+     */
+    !it.name.lowercase().contains("test")
   }
 }
 
