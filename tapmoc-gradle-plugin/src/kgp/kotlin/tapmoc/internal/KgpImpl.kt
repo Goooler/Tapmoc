@@ -126,9 +126,27 @@ private class KgpImpl(private val dependencyHandler: DependencyHandler, extensio
         /**
          * Android/JVM: adding the stdlib through the compilations does not seem to work,
          * just add to the `api` configuration
+         *
+         * Just like in KGP, add this to all targets/compilations/sourceSets. This is especially
+         * useful for tapmoc itself, which has several compilations for AGP vs KGP
          */
-        dependencyHandler.add("api", "org.jetbrains.kotlin:kotlin-stdlib:${version}")
+        kotlinProjectExtension.forAllTargets { target ->
+          target.compilations.matching { it.name != "test" }.configureEach { compilation ->
+            compilation.allKotlinSourceSets.forEach { sourceSet ->
+              dependencyHandler.add(sourceSet.apiConfigurationName, "org.jetbrains.kotlin:kotlin-stdlib:${version}")
+            }
+          }
+        }
       }
+    }
+  }
+
+  // from https://github.com/Jetbrains/kotlin/blob/4a0bfcd842ecef22ed176df3d204ec1531fa8441/libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/utils/kotlinExtensionUtils.kt#L23
+  private fun KotlinProjectExtension.forAllTargets(action: (target: KotlinTarget) -> Unit) {
+    when (this) {
+      is KotlinSingleTargetExtension<*> -> action(target)
+      is KotlinMultiplatformExtension -> targets.all(action)
+      else -> error("Unexpected 'kotlin' extension $this")
     }
   }
 
